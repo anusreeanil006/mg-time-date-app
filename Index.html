@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Market MG Date & Time Finder</title>
+<style>
+
+body {
+
+    font-family: Arial, sans-serif;
+
+    background: #f4f6f8;
+
+    padding: 20px;
+
+}
+
+h1 {
+
+    text-align: center;
+
+}
+
+.search {
+
+    text-align: center;
+
+    margin-bottom: 20px;
+
+}
+
+select, button {
+
+    padding: 10px;
+
+    font-size: 16px;
+
+}
+
+.card {
+
+    background: #fff;
+
+    max-width: 700px;
+
+    margin: auto;
+
+    padding: 20px;
+
+    border-radius: 8px;
+
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+    line-height: 1.9;
+
+}
+
+.label {
+
+    font-weight: bold;
+
+}
+
+.deadline-missed {
+
+    color: red;
+
+    font-weight: bold;
+
+}
+</style>
+</head>
+<body>
+<h1>Market MG Date & Time Finder</h1>
+<div class="search">
+<select id="marketSelect">
+<option value="">Select Market</option>
+</select>
+<button onclick="searchMarket()">Search</button>
+</div>
+<div id="result" class="card" style="display:none;"></div>
+<script>
+
+/* ================= ALL MARKETS ================= */
+
+const markets = [
+
+ {name:"Albuquerque", region:"Central", tz:"America/Denver"},
+
+ {name:"Atlanta", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Augusta", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Baltimore", region:"Atlantic", tz:"America/New_York"},
+
+ {name:"Boston", region:"Northeast", tz:"America/New_York"},
+
+ {name:"Bowling Green", region:"Atlantic", tz:"America/Chicago"},
+
+ {name:"Burlington", region:"Northeast", tz:"America/New_York"},
+
+ {name:"Champaign", region:"Midwest", tz:"America/Chicago"},
+
+ {name:"Charleston", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Chattanooga", region:"Atlantic", tz:"America/Chicago"},
+
+ {name:"Chicago", region:"Midwest", tz:"America/Chicago"},
+
+ {name:"Colorado Springs", region:"Central", tz:"America/Denver"},
+
+ {name:"Denver", region:"Central", tz:"America/Denver"},
+
+ {name:"Detroit", region:"Midwest", tz:"America/New_York"},
+
+ {name:"Eugene", region:"Pacific", tz:"America/Los_Angeles"},
+
+ {name:"Flint", region:"Midwest", tz:"America/New_York"},
+
+ {name:"Fort Myers", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Fort Wayne", region:"Midwest", tz:"America/New_York"},
+
+ {name:"Fresno", region:"Pacific", tz:"America/Los_Angeles"},
+
+ {name:"Grand Rapids", region:"Midwest", tz:"America/New_York"},
+
+ {name:"Hartford", region:"Northeast", tz:"America/New_York"},
+
+ {name:"Houston", region:"Central", tz:"America/Chicago"},
+
+ {name:"Indianapolis", region:"Midwest", tz:"America/New_York"},
+
+ {name:"Jacksonville", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Knoxville", region:"Atlantic", tz:"America/New_York"},
+
+ {name:"Lafayette", region:"Midwest", tz:"America/Chicago"},
+
+ {name:"Little Rock (AR)", region:"Central", tz:"America/Chicago"},
+
+ {name:"Memphis", region:"Atlantic", tz:"America/Chicago"},
+
+ {name:"Miami", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Monterey", region:"Pacific", tz:"America/Los_Angeles"},
+
+ {name:"Nashville", region:"Atlantic", tz:"America/Chicago"},
+
+ {name:"New York", region:"Northeast", tz:"America/New_York"},
+
+ {name:"Panama City", region:"Southeast", tz:"America/Chicago"},
+
+ {name:"Philadelphia", region:"Northeast", tz:"America/New_York"},
+
+ {name:"Pittsburgh", region:"Northeast", tz:"America/New_York"},
+
+ {name:"Portland", region:"Pacific", tz:"America/Los_Angeles"},
+
+ {name:"Richmond", region:"Atlantic", tz:"America/New_York"},
+
+ {name:"Sacramento", region:"Pacific", tz:"America/Los_Angeles"},
+
+ {name:"Salt Lake City", region:"Central", tz:"America/Denver"},
+
+ {name:"San Francisco", region:"Pacific", tz:"America/Los_Angeles"},
+
+ {name:"Savannah", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Seattle", region:"Pacific", tz:"America/Los_Angeles"},
+
+ {name:"Spokane", region:"Pacific", tz:"America/Los_Angeles"},
+
+ {name:"Springfield", region:"Northeast", tz:"America/New_York"},
+
+ {name:"Tallahassee", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Twin Cities", region:"Central", tz:"America/Chicago"},
+
+ {name:"Washington D.C.", region:"Atlantic", tz:"America/New_York"},
+
+ {name:"West Palm Beach", region:"Southeast", tz:"America/New_York"},
+
+ {name:"Wilkes-Barre", region:"Northeast", tz:"America/New_York"}
+
+];
+
+/* ================= INIT DROPDOWN ================= */
+
+const select = document.getElementById("marketSelect");
+
+markets.forEach(m => {
+
+    const opt = document.createElement("option");
+
+    opt.value = m.name;
+
+    opt.textContent = m.name;
+
+    select.appendChild(opt);
+
+});
+
+/* ================= HELPERS ================= */
+
+function formatTime(date, tz) {
+
+    return new Intl.DateTimeFormat("en-US", {
+
+        timeZone: tz,
+
+        hour: "2-digit",
+
+        minute: "2-digit",
+
+        second: "2-digit",
+
+        hour12: true
+
+    }).format(date);
+
+}
+
+function formatDate(d) {
+
+    return `${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}-${String(d.getFullYear()).slice(-2)}`;
+
+}
+
+function addDays(days) {
+
+    const d = new Date();
+
+    d.setDate(d.getDate() + days);
+
+    return formatDate(d);
+
+}
+
+function isAfter930(tz) {
+
+    const parts = new Intl.DateTimeFormat("en-US", {
+
+        timeZone: tz,
+
+        hour12: false,
+
+        hour: "2-digit",
+
+        minute: "2-digit"
+
+    }).formatToParts(new Date());
+
+    const hh = parseInt(parts.find(p => p.type === "hour").value);
+
+    const mm = parseInt(parts.find(p => p.type === "minute").value);
+
+    return (hh > 9 || (hh === 9 && mm > 30));
+
+}
+
+/* ================= SEARCH ================= */
+
+function searchMarket() {
+
+    const m = markets.find(x => x.name === select.value);
+
+    if (!m) return;
+
+    const now = new Date();
+
+    const marketTime = formatTime(now, m.tz);
+
+    const istTime = formatTime(now, "Asia/Kolkata");
+
+    const missed = isAfter930(m.tz);
+
+    const red = missed ? "deadline-missed" : "";
+
+    const cutOffTime =
+
+        m.tz.includes("New_York") || m.tz.includes("Chicago")
+
+        ? "02:30:00 AM"
+
+        : "03:30:00 AM";
+
+    document.getElementById("result").style.display = "block";
+
+    document.getElementById("result").innerHTML = `
+<div><span class="label">Market:</span> ${m.name}</div><br>
+<div>
+<span class="label">Region:</span> ${m.region}<br>
+<span class="label">Market Time Now:</span> ${marketTime}<br>
+<span class="label">Deadline Market Time:</span> 09:30:00 AM
+</div><br>
+<div>
+<span class="label">IST Time Now:</span> ${istTime}
+</div><br>
+<div>
+<span class="label ${red}">Deadline MG Date (Dish):</span>
+<span class="${red}">${addDays(2)}</span><br>
+<span class="label ${red}">Deadline MG Date (Zone):</span>
+<span class="${red}">${addDays(1)}</span><br>
+<span class="label">Future MG Date (Zone):</span> ${addDays(2)}<br>
+<span class="label">Future MG Date (Dish):</span> ${addDays(3)}
+</div><br>
+<div>
+<span class="label">Cut Off Time:</span> ${cutOffTime}
+</div>
+
+    `;
+
+}
+</script>
+</body>
+</html>
+ 
